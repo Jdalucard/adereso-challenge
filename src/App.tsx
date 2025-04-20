@@ -84,8 +84,7 @@ function App() {
             <h2>Personajes de Star Wars</h2>
             <div className="data-grid">
               {starWarsDataPeople.results.map((person: People) => (
-                <div key={person.uid
-                } className="data-card">
+                <div key={person.uid} className="data-card">
                   <h3>{person.name}</h3>
                   <p>Altura: {person.height} cm</p>
                   <p>Peso: {person.mass} kg</p>
@@ -101,7 +100,7 @@ function App() {
             <h2>Planetas de Star Wars</h2>
             <div className="data-grid">
               {starWarsDataPlanets.results.map((planet: Planet) => (
-                <div key={planet.name} className="data-card">
+                <div key={planet.uid} className="data-card">
                   <h3>{planet.name}</h3>
                   <p>Período de Rotación: {planet.rotation_period} horas</p>
                   <p>Período Orbital: {planet.orbital_period} días</p>
