@@ -6,6 +6,7 @@ export interface Planet {
   diameter: number;
   surface_water: number;
   population: number;
+  url: string;
 }
 
 export interface People {

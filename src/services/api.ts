@@ -1,16 +1,34 @@
-import axios, { AxiosInstance } from 'axios';
-import { 
-  StarWarsPlanetResponse, 
-  StarWarsPeopleResponse, 
+import axios, { AxiosInstance } from "axios";
+import {
+  StarWarsPlanetResponse,
+  StarWarsPeopleResponse,
   PokemonResponse,
   People,
-  Planet
-} from '../types';
+  Planet,
+} from "../types";
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+interface SWAPIPlanet {
+  url: string;
+  name: string;
+  rotation_period: string;
+  orbital_period: string;
+  diameter: string;
+  surface_water: string;
+  population: string;
+}
+
+interface SWAPIPerson {
+  url: string;
+  name: string;
+  height: string;
+  mass: string;
+  homeworld: string;
+}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const BASE_URL = '/api';
-const SWAPI_URL = 'https://swapi.tech/api';
+const SWAPI_URL_PLANETS = 'https://swapi.py4e.com/api/';
 const POKEMON_URL = 'https://pokeapi.co/api/v2/pokemon';
 
 export const api: AxiosInstance = axios.create({
@@ -21,51 +39,53 @@ export const api: AxiosInstance = axios.create({
   },
 });
 
-export const getChallenge = async () => {
-  const response = await api.get('/challenge/test');
-  console.log('🔥 Challenge:', response.data);
-  return response.data;
-};
+export const getStarWarsDataPlanets =
+  async (): Promise<StarWarsPlanetResponse> => {
+    let allPlanets: Planet[] = [];
+    let nextUrl = `${SWAPI_URL_PLANETS}/planets`;
 
-export const getStarWarsDataPlanets = async (): Promise<StarWarsPlanetResponse> => {
-  let allPlanets: Planet[] = [];
-  let nextUrl = `${SWAPI_URL}/planets`;
-  
-  while (nextUrl) {
-    const response = await axios.get(nextUrl);
-    const planets = await Promise.all(
-      response.data.results.map(async (planet: { url: string }) => {
-        const planetDetails = await axios.get(planet.url);
-        return planetDetails.data.result.properties;
-      })
-    );
-    allPlanets = [...allPlanets, ...planets];
-    nextUrl = response.data.next;
-    if (nextUrl) {
-      await delay(500);
+    while (nextUrl) {
+      const response = await axios.get(nextUrl);
+      const planets = response.data.results.map((planet: SWAPIPlanet) => ({
+        uid: planet.url.split('/').slice(-2, -1)[0],
+        name: planet.name,
+        rotation_period: parseInt(planet.rotation_period) || 0,
+        orbital_period: parseInt(planet.orbital_period) || 0,
+        diameter: parseInt(planet.diameter) || 0,
+        surface_water: parseInt(planet.surface_water) || 0,
+        population: parseInt(planet.population) || 0,
+        url: planet.url
+      }));
+      
+      allPlanets = [...allPlanets, ...planets];
+      nextUrl = response.data.next;
+      if (nextUrl) {
+        await delay(500);
+      }
     }
-  }
 
-  console.log('🔥 Planets Data:', allPlanets);
-  return { results: allPlanets };
-};
+    console.log("🔥 Planets Data:", allPlanets);
+    return { results: allPlanets };
+  };
 
 export const getStarWarsDataPeople = async (): Promise<StarWarsPeopleResponse> => {
   let allPeople: People[] = [];
-  let nextUrl = `${SWAPI_URL}/people?limit=38`; // Máximo permitido por la API
+  let nextUrl = `${SWAPI_URL_PLANETS}/people`;
   
   while (nextUrl) {
     const response = await axios.get(nextUrl);
-    const people = await Promise.all(
-      response.data.results.map(async (person: { url: string }) => {
-        const personDetails = await axios.get(person.url);
-        return personDetails.data.result.properties;
-      })
-    );
+    const people = response.data.results.map((person: SWAPIPerson) => ({
+      uid: person.url.split('/').slice(-2, -1)[0],
+      name: person.name,
+      height: parseInt(person.height) || 0,
+      mass: parseInt(person.mass) || 0,
+      homeworld: person.homeworld
+    }));
+    
     allPeople = [...allPeople, ...people];
     nextUrl = response.data.next;
     if (nextUrl) {
-      await delay(500); // Reducimos el delay a 500ms
+      await delay(500);
     }
   }
 
@@ -83,11 +103,16 @@ export const getPokemonData = async (): Promise<PokemonResponse> => {
     })
   );
 
-  console.log('🔥 Pokemon Data:', pokemon);
+  console.log("🔥 Pokemon Data:", pokemon);
   return {
     count: response.data.count,
     next: response.data.next,
     previous: response.data.previous,
-    results: pokemon
+    results: pokemon,
   };
+};
+export const getChallenge = async () => {
+  const response = await api.get("/challenge/test");
+  console.log("🔥 Challenge:", response.data);
+  return response.data;
 };

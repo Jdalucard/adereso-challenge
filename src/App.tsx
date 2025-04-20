@@ -21,30 +21,64 @@ function App() {
   const [starWarsDataPlanets, setStarWarsDataPlanets] = useState<StarWarsPlanetResponse | null>(null);
   const [starWarsDataPeople, setStarWarsDataPeople] = useState<StarWarsPeopleResponse | null>(null);
   const [pokemonData, setPokemonData] = useState<PokemonResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    planets: false,
+    people: false,
+    pokemon: false,
+    challenge: false
+  });
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAllData = async () => {
+  const fetchReferenceData = async () => {
     try {
-      setLoading(true);
+      setLoading(prev => ({ ...prev, planets: true }));
       setError(null);
       
-      const [challengeData, planetsData, peopleData, pokemonData] = await Promise.all([
-        getChallenge(),
-        getStarWarsDataPlanets(),
-        getStarWarsDataPeople(),
-        getPokemonData()
-      ]);
-      
-      setChallenge(challengeData);
+      // Cargar planetas primero
+      const planetsData = await getStarWarsDataPlanets();
       setStarWarsDataPlanets(planetsData);
-      setStarWarsDataPeople(peopleData);
+      setLoading(prev => ({ ...prev, planets: false }));
+
+
+      // Luego cargar personajes
+      setLoading(prev => ({ ...prev, pokemon: true }));
+      const pokemonData = await getPokemonData();
       setPokemonData(pokemonData);
+      setLoading(prev => ({ ...prev, pokemon: false }));
+
+       // Finalmente cargar Pokémon 
+
+      setLoading(prev => ({ ...prev, people: true }));
+      const peopleData = await getStarWarsDataPeople();
+      setStarWarsDataPeople(peopleData);
+      setLoading(prev => ({ ...prev, people: false }));
+      
+      
+      
+      return true;
     } catch (error) {
-      setError('Error al obtener los datos');
+      setError('Error al cargar los datos de referencia. Por favor, intente de nuevo más tarde.');
       console.error('❌ Error:', error);
-    } finally {
-      setLoading(false);
+      return false;
+    }
+  };
+
+  const fetchChallengeData = async () => {
+    try {
+      setLoading(prev => ({ ...prev, challenge: true }));
+      const challengeData = await getChallenge();
+      setChallenge(challengeData);
+      setLoading(prev => ({ ...prev, challenge: false }));
+    } catch (error) {
+      setError('Error al cargar el desafío');
+      console.error('❌ Error:', error);
+    }
+  };
+
+  const fetchAllData = async () => {
+    const referenceDataLoaded = await fetchReferenceData();
+    if (referenceDataLoaded) {
+      await fetchChallengeData();
     }
   };
 
@@ -52,19 +86,26 @@ function App() {
     fetchAllData();
   }, []);
 
+  const isLoading = Object.values(loading).some(value => value);
+
   return (
     <div className="container">
       <h1>🔥 Desafío Adereso</h1>
       
       <button 
         onClick={fetchAllData} 
-        disabled={loading}
+        disabled={isLoading}
         className="challenge-button"
       >
-        {loading ? 'Cargando...' : 'Obtener Todos los Datos'}
+        {isLoading ? 'Cargando...' : 'Obtener Todos los Datos'}
       </button>
 
       {error && <p className="error">{error}</p>}
+
+      {loading.planets && <p>Cargando planetas...</p>}
+      {loading.people && <p>Cargando personajes...</p>}
+      {loading.pokemon && <p>Cargando Pokémon...</p>}
+      {loading.challenge && <p>Cargando desafío...</p>}
 
       {challenge && (
         <div className="challenge-container">
@@ -88,7 +129,7 @@ function App() {
                   <h3>{person.name}</h3>
                   <p>Altura: {person.height} cm</p>
                   <p>Peso: {person.mass} kg</p>
-                  <p>Planeta Natal: {person.homeworld}</p>
+                  <p>Planeta Natal: {starWarsDataPlanets?.results.find(planet => planet.url === person.homeworld)?.name || 'Desconocido'}</p>
                 </div>
               ))}
             </div>
